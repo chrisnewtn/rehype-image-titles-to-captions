@@ -38,6 +38,7 @@
   "devDependencies": {
     "@types/node": "^22.10.5",
     "rehype": "^13.0.2",
+    "rehype-minify-whitespace": "^6.0.2",
     "typescript": "^5.7.2"
   }
 }

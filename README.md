@@ -74,12 +74,10 @@ console.log(String(file));
 Yields:
 
 ```html
-<p>
-  <figure>
-    <img src="https://example.com/example.jpg" alt="Image alt text">
-    <figcaption>Image caption text.</figcaption>
-  </figure>
-</p>
+<figure>
+  <img src="https://example.com/example.jpg" alt="Image alt text">
+  <figcaption>Image caption text.</figcaption>
+</figure>
 ```
 
 [test]: https://github.com/chrisnewtn/rehype-image-titles-to-captions/actions/workflows/test.yml
