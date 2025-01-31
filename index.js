@@ -4,6 +4,8 @@ import { findParent } from 'hast-util-find-parent';
 
 /**
  * @typedef {import('hast').Root} Root
+ * @typedef {import('hast').Element} Element
+ * @typedef {import('hast').Parent} Parent
  *
  * @typedef Options
  *  Configuration.
@@ -15,6 +17,26 @@ import { findParent } from 'hast-util-find-parent';
  *  Whether or not to delete the titles of images that have had captions
  *  created for them.
  */
+
+/**
+ * Predicate function for ensuring the passed element is an {@link Element}
+ * @param {Element | Parent | null} element
+ * @returns {element is Element}
+ */
+function isElement(element) {
+  return !!element && 'children' in element && Array.isArray(element.children);
+}
+
+/**
+ * Predicate function for ensuring the passed element is an {@link Element} and
+ * has the passed `tagName`.
+ * @param {Element | Parent | null} element
+ * @param {string} tagName
+ * @returns {element is Element}
+ */
+function isTag(element, tagName) {
+  return isElement(element) && element.tagName === tagName;
+}
 
 /** @type {Options} */
 const defaultOptions = {
@@ -74,12 +96,62 @@ export function imageTitlesToCaptions(options = defaultOptions) {
         throw new Error(`Could not find parent of ${outerEl.tagName}`);
       }
 
-      // Replace the picture or img element in the tree with the new figure element.
-      outerElParentEl.children.splice(
-        outerElParentEl.children.indexOf(outerEl),
-        1,
-        figureEl
-      );
+      let replacedOuterOuterParent = false;
+
+      // If the parent is a `<p>` element, `<p>` elements cannot have a `<figure>`
+      // as a child, so try placing it further up the tree.
+      if (isTag(outerElParentEl, 'p')) {
+        const outerOuterParent = findParent(outerElParentEl, tree);
+
+        // Try placing the `<figure>` further up the tree. If the parent of the
+        // parent is _also_ a `<p>` then just give up and place it in the
+        // immediate paragraph as before. The browser will cope, but possibly not
+        // in an acceptable way.
+        if (isElement(outerOuterParent) && outerOuterParent.tagName !== 'p') {
+          const immediateParentIsEmpty = outerElParentEl.children.every(el => {
+            if (el === outerEl) {
+              return true;
+            }
+            if (el.type === 'text') {
+              return el.value.trim() === ''
+            }
+            return false;
+          });
+
+          if (immediateParentIsEmpty) {
+            // If the parent of the `<figure>` is otherwise empty without the `<figure>`,
+            // replace the now empty parent with the `<figure>`.
+            outerOuterParent.children.splice(
+              outerOuterParent.children.indexOf(outerElParentEl),
+              1,
+              figureEl
+            );
+          } else {
+            // Otherwise, remove the original image from its parent, and place the
+            // `<figure>` after that parent.
+            outerOuterParent.children.splice(
+              outerOuterParent.children.indexOf(outerElParentEl) + 1,
+              0,
+              figureEl
+            );
+            outerElParentEl.children.splice(
+              outerElParentEl.children.indexOf(outerEl),
+              1
+            );
+          }
+          replacedOuterOuterParent = true;
+        }
+      }
+
+      if (!replacedOuterOuterParent) {
+        // If none of that `<p>` stuff was necessary or possible, just replace
+        // the picture or img element in the tree with the new figure element.
+        outerElParentEl.children.splice(
+          outerElParentEl.children.indexOf(outerEl),
+          1,
+          figureEl
+        );
+      }
 
       if (deleteTitles) {
         // Delete the title on the image as it is now duplicate data.
