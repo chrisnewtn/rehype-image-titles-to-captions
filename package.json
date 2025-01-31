@@ -1,6 +1,6 @@
 {
   "name": "rehype-image-titles-to-captions",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generates figcaptions for images using the contents of their title property.",
   "main": "index.js",
   "author": "Chris Newton <me@chrisnewtn.com> (https://chrisnewtn.com)",
